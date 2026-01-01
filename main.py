@@ -1,3 +1,4 @@
+import html
 import asyncio
 import logging
 import json
@@ -281,16 +282,23 @@ async def process_application(message: Message, state: FSMContext):
     application_text = message.text
     user = message.from_user
     
-    # Формируем сообщение админу
+    # Используем html.escape, чтобы спецсимволы в именах не ломали сообщение
+    # И меняем разметку на HTML (<b> - жирный, <code> - код)
+    
+    safe_name = html.escape(user.full_name)
+    safe_username = html.escape(str(user.username))
+    safe_text = html.escape(application_text)
+
     admin_msg = (
-        f"📩 НОВАЯ ЗАЯВКА НА ГОРОД!\n\n"
-        f"👤 От: {user.full_name} (@{user.username})\n"
-        f"🆔 ID: {user.id}\n\n"
-        f"📄 Текст заявки:\n{application_text}"
+        f"📩 <b>НОВАЯ ЗАЯВКА НА ГОРОД!</b>\n\n"
+        f"👤 От: {safe_name} (@{safe_username})\n"
+        f"🆔 ID: <code>{user.id}</code>\n\n"
+        f"📄 <b>Текст заявки:</b>\n{safe_text}"
     )
     
     try:
-        await bot.send_message(ADMIN_ID, admin_msg, parse_mode="Markdown")
+        # Важно: parse_mode="HTML"
+        await bot.send_message(ADMIN_ID, admin_msg, parse_mode="HTML")
         await message.answer("✅ Заявка успешно отправлена!\nАдминистратор рассмотрит её в ближайшее время.", reply_markup=get_main_menu(), parse_mode="Markdown")
     except Exception as e:
         await message.answer(f"Ошибка отправки: {e}. Попробуйте позже.")
