@@ -12,7 +12,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 
 # --- КОНФИГУРАЦИЯ ---
 TOKEN = "8226548122:AAHdyihHKdrXHZr4W8oFuxtNaY8tQriG4RE"
-ADMIN_ID = 6131249570  # ЗАМЕНИ НА СВОЙ ID, ЧТОБЫ ПОЛУЧАТЬ ЗАЯВКИ
+ADMIN_ID = 6131249570  # <--- ПРОВЕРЬ, ЧТО ЭТО ТВОЙ ID
 AD_INTERVAL = 43200  # 12 часов
 AD_TEXT = "Подумай о будущем. Вступи в ряды Ординалистов: https://t.me/ordinalism"
 DB_FILE = "database.json"
@@ -50,7 +50,7 @@ default_db = {
         }
     },
     "users_jobs": {},  
-    "all_users": []  # Храним как список для JSON
+    "all_users": [] 
 }
 
 db = {}
@@ -64,8 +64,8 @@ def load_db():
         try:
             with open(DB_FILE, "r", encoding="utf-8") as f:
                 db = json.load(f)
-            # Проверка целостности структуры (если добавили новые поля в коде)
-            if "shops" not in db["cities"]["city1"]:
+            # Проверка целостности структуры
+            if "cities" in db and "city1" in db["cities"] and "shops" not in db["cities"]["city1"]:
                 for city in db["cities"].values():
                     if "shops" not in city:
                         city["shops"] = []
@@ -91,7 +91,6 @@ class Form(StatesGroup):
     waiting_for_application = State()
 
 # --- КЛАВИАТУРЫ ---
-
 def get_main_menu():
     buttons = [
         [InlineKeyboardButton(text="🏪 Список магазинов", callback_data="menu_shops")],
@@ -101,26 +100,23 @@ def get_main_menu():
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 def get_cities_keyboard(action_prefix="city"):
-    # action_prefix позволяет использовать один список для разных целей
-    # "city" -> открывает меню города
-    # "shoplist" -> открывает список магазинов города
     buttons = []
     for code, data in db["cities"].items():
         buttons.append([InlineKeyboardButton(text=data["name"], callback_data=f"{action_prefix}_{code}")])
     
     buttons.append([InlineKeyboardButton(text="🔙 В главное меню", callback_data="main_menu")])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
+
 def get_city_menu_keyboard(city_code, user_id=None):
     buttons = [
         [InlineKeyboardButton(text="💼 Работы", callback_data=f"jobs_{city_code}")],
-        [InlineKeyboardButton(text="🏪 Магазины", callback_data=f"showshops_{city_code}")], # Новая кнопка
+        [InlineKeyboardButton(text="🏪 Магазины", callback_data=f"showshops_{city_code}")],
         [InlineKeyboardButton(text="🤝 Союзники", callback_data=f"allies_{city_code}")],
         [InlineKeyboardButton(text="⚔️ Враги", callback_data=f"enemies_{city_code}")],
         [InlineKeyboardButton(text="📍 Координаты", callback_data=f"coords_{city_code}")],
         [InlineKeyboardButton(text="📜 Задачи", callback_data=f"tasks_{city_code}")],
     ]
     
-    # Проверяем работу (приводим user_id к строке, т.к. в JSON ключи словаря - строки)
     str_user_id = str(user_id)
     if str_user_id in db["users_jobs"]:
         user_job = db["users_jobs"][str_user_id]
@@ -157,7 +153,6 @@ def add_user_to_db(user_id):
         save_db()
 
 # --- ХЕНДЛЕРЫ: ОСНОВНОЕ ---
-
 @dp.message(Command("start"))
 async def cmd_start(message: Message):
     add_user_to_db(message.from_user.id)
@@ -171,11 +166,10 @@ async def back_to_main(callback: CallbackQuery):
     await callback.message.edit_text("Выбери действие:", reply_markup=get_main_menu())
 
 # --- ХЕНДЛЕРЫ: МЕНЮ МАГАЗИНОВ ---
-
 @dp.callback_query(F.data == "menu_shops")
 async def menu_shops_list(callback: CallbackQuery):
     await callback.message.edit_text(
-        "🏪 Список магазинов\nВыберите город, чтобы посмотреть магазины:",
+        "🏪 **Список магазинов**\nВыберите город, чтобы посмотреть магазины:",
         reply_markup=get_cities_keyboard(action_prefix="shoplist"),
         parse_mode="Markdown"
     )
@@ -186,46 +180,41 @@ async def show_shops_in_city(callback: CallbackQuery):
     city = db["cities"][city_code]
     shops = city.get("shops", [])
     
-    text = f"🏪 Магазины в г. {city['name']}:\n\n"
+    text = f"🏪 **Магазины в г. {city['name']}**:\n\n"
     if not shops:
         text += "В этом городе пока нет магазинов."
     else:
         for shop in shops:
-            text += f"🛒 {shop['name']}\n📍 {shop['coords']}\n\n"
+            text += f"🛒 **{shop['name']}**\n📍 `{shop['coords']}`\n\n"
     
-    # Кнопка назад
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🔙 К выбору города", callback_data="menu_shops")]
     ])
     await callback.message.edit_text(text, reply_markup=kb, parse_mode="Markdown")
 
-# Дублирующая логика для кнопки внутри меню города
 @dp.callback_query(F.data.startswith("showshops_"))
-
 async def show_shops_internal(callback: CallbackQuery):
     city_code = callback.data.split("_")[1]
     city = db["cities"][city_code]
     shops = city.get("shops", [])
     
-    text = f"🏪 Магазины в г. {city['name']}:\n\n"
+    text = f"🏪 **Магазины в г. {city['name']}**:\n\n"
     if not shops:
         text += "В этом городе пока нет магазинов."
     else:
         for shop in shops:
-            text += f"🛒 {shop['name']}\n📍 {shop['coords']}\n\n"
+            text += f"🛒 **{shop['name']}**\n📍 `{shop['coords']}`\n\n"
             
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🔙 Назад в город", callback_data=f"city_{city_code}")]
     ])
     await callback.message.edit_text(text, reply_markup=kb, parse_mode="Markdown")
 
-
-# --- ХЕНДЛЕРЫ: МЕНЮ ГОРОДОВ (Старая логика) ---
-
+# --- ХЕНДЛЕРЫ: МЕНЮ ГОРОДОВ ---
 @dp.callback_query(F.data == "menu_cities")
 async def menu_cities_list(callback: CallbackQuery):
     await callback.message.edit_text(
-        "🏙 Список городов\nВыберите город:", 
+        "🏙 **Список городов**\nВыберите город:", 
         reply_markup=get_cities_keyboard(action_prefix="city"),
         parse_mode="Markdown"
     )
@@ -236,7 +225,7 @@ async def show_city_menu(callback: CallbackQuery):
     city_name = db["cities"][city_code]["name"]
     user_id = callback.from_user.id
     
-    text = f"🏙 Город: {city_name}\nВыберите раздел:"
+    text = f"🏙 **Город: {city_name}**\nВыберите раздел:"
     await callback.message.edit_text(text, reply_markup=get_city_menu_keyboard(city_code, user_id), parse_mode="Markdown")
 
 @dp.callback_query(F.data.startswith(("allies_", "enemies_", "coords_", "tasks_")))
@@ -247,22 +236,21 @@ async def show_info(callback: CallbackQuery):
     
     city_data = db["cities"][city_code]
     info_map = {
-        "allies": f"🤝 Союзники:\n{city_data['allies']}",
-        "enemies": f"⚔️ Враги:\n{city_data['enemies']}",
-        "coords": f"📍 Координаты спавна:\n{city_data['coords']}",
-        "tasks": f"📜 Задачи города:\n{city_data['tasks']}"
+        "allies": f"🤝 **Союзники:**\n{city_data['allies']}",
+        "enemies": f"⚔️ **Враги:**\n{city_data['enemies']}",
+        "coords": f"📍 **Координаты спавна:**\n`{city_data['coords']}`",
+        "tasks": f"📜 **Задачи города:**\n{city_data['tasks']}"
     }
     
     back_kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Назад", callback_data=f"city_{city_code}")]])
     await callback.message.edit_text(info_map[action], reply_markup=back_kb, parse_mode="Markdown")
 
-# --- ХЕНДЛЕРЫ: ЗАЯВКА НА ДОБАВЛЕНИЕ ГОРОДА ---
-
+# --- ХЕНДЛЕРЫ: ЗАЯВКА ---
 @dp.callback_query(F.data == "menu_apply")
 async def start_application(callback: CallbackQuery, state: FSMContext):
     text = (
-        "📝 Заявка на добавление города\n\n"
-        "Пожалуйста, напишите одним сообщением следующую информацию:\n"
+        "📝 **Заявка на добавление города**\n\n"
+        "Пожалуйста, напишите одним сообщением:\n"
         "1. Название города\n"
         "2. Координаты\n"
         "3. Владелец/Мэр\n"
@@ -282,11 +270,8 @@ async def process_application(message: Message, state: FSMContext):
     application_text = message.text
     user = message.from_user
     
-    # Используем html.escape, чтобы спецсимволы в именах не ломали сообщение
-    # И меняем разметку на HTML (<b> - жирный, <code> - код)
-    
     safe_name = html.escape(user.full_name)
-    safe_username = html.escape(str(user.username))
+    safe_username = html.escape(str(user.username)) if user.username else "Нет юзернейма"
     safe_text = html.escape(application_text)
 
     admin_msg = (
@@ -297,22 +282,19 @@ async def process_application(message: Message, state: FSMContext):
     )
     
     try:
-        # Важно: parse_mode="HTML"
         await bot.send_message(ADMIN_ID, admin_msg, parse_mode="HTML")
-        await message.answer("✅ Заявка успешно отправлена!\nАдминистратор рассмотрит её в ближайшее время.", reply_markup=get_main_menu(), parse_mode="Markdown")
+        await message.answer("✅ **Заявка успешно отправлена!**", reply_markup=get_main_menu(), parse_mode="Markdown")
     except Exception as e:
-        await message.answer(f"Ошибка отправки: {e}. Попробуйте позже.")
-        logging.error(f"Не удалось отправить заявку админу: {e}")
+        await message.answer(f"Ошибка отправки: {e}", reply_markup=get_main_menu())
     
     await state.clear()
 
-# --- ХЕНДЛЕРЫ: РАБОТА (С сохранением в БД) ---
-
+# --- ХЕНДЛЕРЫ: РАБОТА ---
 @dp.callback_query(F.data.startswith("jobs_"))
 async def show_jobs(callback: CallbackQuery):
     city_code = callback.data.split("_")[1]
     user_id = callback.from_user.id
-    text = "💼 Биржа труда\nНажмите на вакансию, чтобы устроиться:"
+    text = "💼 **Биржа труда**\nНажмите на вакансию:"
     await callback.message.edit_text(text, reply_markup=get_jobs_keyboard(city_code, user_id), parse_mode="Markdown")
 
 @dp.callback_query(F.data.startswith("takejob_"))
@@ -321,28 +303,26 @@ async def take_job(callback: CallbackQuery):
     city_code = parts[1]
     job_code = parts[2]
     user_id = callback.from_user.id
-    str_user_id = str(user_id) # JSON ключи - строки
+    str_user_id = str(user_id)
     
     if str_user_id in db["users_jobs"]:
         await callback.answer("Вы уже работаете! Сначала увольтесь.", show_alert=True)
         return
     
     job_info = db["cities"][city_code]["jobs"][job_code]
-    
     if job_info["taken"] >= job_info["slots"]:
-        await callback.answer("Места уже закончились!", show_alert=True)
+        await callback.answer("Места закончились!", show_alert=True)
         return
 
-    # Логика устройства
     job_info["taken"] += 1
     db["users_jobs"][str_user_id] = {"city_code": city_code, "job_code": job_code}
-    save_db() # СОХРАНЯЕМ В ФАЙЛ
+    save_db()
     
     congrats_text = (
-        f"🎉 Поздравляю!\n"
-        f"Вы приняты на должность: {job_info['name']}\n"
+        f"🎉 **Поздравляю!**\n"
+        f"Должность: **{job_info['name']}**\n"
         f"Зарплата: {job_info['salary']}\n\n"
-        f"📝 Ваши обязанности:\n{job_info['desc']}"
+        f"📝 **Обязанности:**\n{job_info['desc']}"
     )
     await callback.message.edit_text(congrats_text, reply_markup=get_jobs_keyboard(city_code, user_id), parse_mode="Markdown")
 
@@ -357,18 +337,15 @@ async def quit_job(callback: CallbackQuery):
         return
     
     user_job = db["users_jobs"][str_user_id]
-    
-    # Увольняем
     job_code = user_job["job_code"]
     job_info = db["cities"][city_code]["jobs"][job_code]
     job_info["taken"] -= 1
     del db["users_jobs"][str_user_id]
-    save_db() # СОХРАНЯЕМ В ФАЙЛ
+    save_db()
     
-    await callback.answer("Вы уволились с работы!", show_alert=True)
-    
+    await callback.answer("Вы уволились!", show_alert=True)
     city_name = db["cities"][city_code]["name"]
-    text = f"🏙 Город: {city_name}\nВыберите раздел:"
+    text = f"🏙 **Город: {city_name}**\nВыберите раздел:"
     await callback.message.edit_text(text, reply_markup=get_city_menu_keyboard(city_code, user_id), parse_mode="Markdown")
 
 @dp.callback_query(F.data == "ignore")
@@ -378,28 +355,23 @@ async def ignore_click(callback: CallbackQuery):
 # --- РАССЫЛКА И АДМИНКА ---
 @dp.message(Command("broadcast"))
 async def cmd_broadcast(message: Message):
-    # 1. Проверка на админа с выводом ID (если не совпадает)
     if message.from_user.id != ADMIN_ID:
-        await message.answer(f"⛔ У вас нет прав. Ваш ID: {message.from_user.id}, а нужен: {ADMIN_ID}")
+        await message.answer(f"⛔ Нет прав. Ваш ID: {message.from_user.id}")
         return
     
     text = message.text.replace('/broadcast', '').strip()
     if not text:
-        await message.answer("⚠️ Вы не ввели текст рассылки.")
+        await message.answer("⚠️ Вы не ввели текст.")
         return
     
-    # 2. Проверка базы данных
     users = db.get("all_users", [])
     if not users:
-        await message.answer("⚠️ База пользователей пуста! Никто (даже вы) еще не нажал /start.")
-        # Автоматически добавляем админа, чтобы работало
         add_user_to_db(message.from_user.id)
         users = db.get("all_users", [])
-        await message.answer("✅ Я добавил вас в базу. Попробуйте снова.")
+        await message.answer("⚠️ База пуста. Добавил вас. Повторите.")
         return
 
-    await message.answer(f"📢 Начинаю рассылку на {len(users)} пользователей...")
-    
+    await message.answer(f"📢 Рассылка на {len(users)} чел...")
     success = 0
     errors = 0
     
@@ -407,21 +379,31 @@ async def cmd_broadcast(message: Message):
         try:
             await bot.send_message(user_id, text)
             success += 1
-            await asyncio.sleep(0.05) # Небольшая задержка
-        except Exception as e:
-            logging.error(f"Не удалось отправить пользователю {user_id}: {e}")
+            await asyncio.sleep(0.05)
+        except Exception:
             errors += 1
     
-    await message.answer(
-        f"🏁 Рассылка завершена\n"
-        f"✅ Успешно: {success}\n"
-        f"❌ Ошибок: {errors}\n"
-        f"(Если ошибок много, возможно, пользователи заблокировали бота)"
-    )
+    await message.answer(f"🏁 Рассылка: ✅ {success}, ❌ {errors}")
+
+# --- ФОНОВАЯ ЗАДАЧА (КОТОРОЙ НЕ БЫЛО) ---
+async def broadcaster():
+    while True:
+        await asyncio.sleep(AD_INTERVAL)
+        users = db.get("all_users", [])
+        if not users:
+            continue
+        for user_id in users:
+            try:
+                await bot.send_message(user_id, AD_TEXT)
+                await asyncio.sleep(0.05)
+            except Exception:
+                pass
+
 # --- ЗАПУСК ---
 async def main():
-    load_db() # Загружаем базу при старте
+    load_db()
     print("Бот запущен...")
+    # Теперь эта функция существует и ошибка исчезнет
     asyncio.create_task(broadcaster())
     await dp.start_polling(bot)
 
