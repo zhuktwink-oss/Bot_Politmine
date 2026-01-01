@@ -378,37 +378,46 @@ async def ignore_click(callback: CallbackQuery):
 # --- РАССЫЛКА И АДМИНКА ---
 @dp.message(Command("broadcast"))
 async def cmd_broadcast(message: Message):
+    # 1. Проверка на админа с выводом ID (если не совпадает)
     if message.from_user.id != ADMIN_ID:
+        await message.answer(f"⛔ У вас нет прав. Ваш ID: {message.from_user.id}, а нужен: {ADMIN_ID}")
         return
     
     text = message.text.replace('/broadcast', '').strip()
     if not text:
-        await message.answer("Текст?")
+        await message.answer("⚠️ Вы не ввели текст рассылки.")
         return
     
-    count = 0
-    # Создаем копию списка, чтобы избежать ошибок изменения во время итерации
-    users = list(db["all_users"]) 
+    # 2. Проверка базы данных
+    users = db.get("all_users", [])
+    if not users:
+        await message.answer("⚠️ База пользователей пуста! Никто (даже вы) еще не нажал /start.")
+        # Автоматически добавляем админа, чтобы работало
+        add_user_to_db(message.from_user.id)
+        users = db.get("all_users", [])
+        await message.answer("✅ Я добавил вас в базу. Попробуйте снова.")
+        return
+
+    await message.answer(f"📢 Начинаю рассылку на {len(users)} пользователей...")
+    
+    success = 0
+    errors = 0
+    
     for user_id in users:
         try:
             await bot.send_message(user_id, text)
-            count += 1
-            await asyncio.sleep(0.05)
-        except:
-            pass
-    await message.answer(f"Отправлено: {count}")
-
-async def broadcaster():
-    while True:
-        await asyncio.sleep(AD_INTERVAL)
-        users = list(db["all_users"])
-        for user_id in users:
-            try:
-                await bot.send_message(user_id, AD_TEXT)
-            except:
-                pass
-            await asyncio.sleep(0.05)
-
+            success += 1
+            await asyncio.sleep(0.05) # Небольшая задержка
+        except Exception as e:
+            logging.error(f"Не удалось отправить пользователю {user_id}: {e}")
+            errors += 1
+    
+    await message.answer(
+        f"🏁 Рассылка завершена\n"
+        f"✅ Успешно: {success}\n"
+        f"❌ Ошибок: {errors}\n"
+        f"(Если ошибок много, возможно, пользователи заблокировали бота)"
+    )
 # --- ЗАПУСК ---
 async def main():
     load_db() # Загружаем базу при старте
