@@ -201,7 +201,6 @@ async def show_shops_in_city(callback: CallbackQuery):
 # Дублирующая логика для кнопки внутри меню города
 @dp.callback_query(F.data.startswith("showshops_"))
 
-Kr. B., [01.01.2026 20:34]
 async def show_shops_internal(callback: CallbackQuery):
     city_code = callback.data.split("_")[1]
     city = db["cities"][city_code]
