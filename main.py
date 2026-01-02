@@ -255,7 +255,8 @@ async def start_application(callback: CallbackQuery, state: FSMContext):
 	"3. Союзники\n"
 	"4. Враги\n"
 	"5. Координаты спавна\n"
-	"6. Задачи (по типу доски объявлений и в целом)\n\n"
+	"6. Задачи (по типу доски объявлений и в целом)\n"
+	"7. Есть ли магазин (если есть, то напишите корды входа)\n\n"
         "Напишите 'отмена', чтобы вернуться."
     )
     await callback.message.edit_text(text, parse_mode="Markdown")
