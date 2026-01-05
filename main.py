@@ -61,7 +61,7 @@ default_db = {
                 "pve": {"name": "ПВЕ", "salary": "50$ за работу", "slots": 99999, "taken": 0, "desc": "ХЗ"}
  		 },
             "shops": []
-        },
+        }
 
     },
     "users_jobs": {},  
