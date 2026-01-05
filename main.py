@@ -62,6 +62,7 @@ default_db = {
  		 },
             "shops": []
         }
+		}
 
     },
     "users_jobs": {},  
