@@ -46,7 +46,23 @@ default_db = {
                 "spy": {"name": "Шпион", "salary": "2000$", "slots": 1, "taken": 0, "desc": "Следить за врагами."}
             },
             "shops": []
-        }
+        },
+"city3": {
+            "name": "Italian_Imperi",
+            "coords": "X: , Z: ",
+            "allies": "ЕС , Монолит , Бразил , SPQR",
+            "enemies": "СССР",
+            "tasks": "1.Стройка площади города , первых ЖК",
+            "jobs": {
+                "miner": {"name": "Шахтер", "salary": "Договорная", "slots": 99999, "taken": 0, "desc": "Копать ресурсы."}
+		{
+                "les": {"name": "Дровосек", "salary": "Договорная", "slots": 99999, "taken": 0, "desc": "Рубить дерево."}
+		{
+                "pve": {"name": "ПВЕ", "salary": "50$ за работу", "slots": 99999, "taken": 0, "desc": "ХЗ"}
+ 		 },
+            "shops": []
+        },
+
     },
     "users_jobs": {},  
     "all_users": [] 
