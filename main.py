@@ -13,7 +13,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 # --- КОНФИГУРАЦИЯ ---
 TOKEN = "8226548122:AAHdyihHKdrXHZr4W8oFuxtNaY8tQriG4RE"
 ADMIN_ID = 6131249570  # <--- ПРОВЕРЬ, ЧТО ЭТО ТВОЙ ID
-AD_INTERVAL = 86400  # 12 часов
+AD_INTERVAL = 86400  # 24 часа
 AD_TEXT = "Подумай о будущем. Вступи в ряды Ординалистов: https://t.me/ordinalism"
 DB_FILE = "database.json"
 
@@ -33,8 +33,8 @@ default_db = {
                 "miner": {"name": "Шахтер", "salary": "1000$", "slots": 5, "taken": 0, "desc": "Копать ресурсы."}
             },
             "shops": [
-                {"name": "Скупка", "coords": "X: 105, Y: 64, Z: -190"},
-                            ]
+                {"name": "Скупка", "coords": "X: 105, Y: 64, Z: -190"}
+            ]
         },
         "city2": {
             "name": "Мрачный",
@@ -47,9 +47,9 @@ default_db = {
             },
             "shops": []
         },
-"city3": {
-            "name": "Italian_Imperi",
-            "coords": "X: , Z: ",
+        "city3": {
+            "name": "Italian Imperi",
+            "coords": "X: ?, Z: ?", 
             "allies": "ЕС , Монолит , Бразил , SPQR",
             "enemies": "СССР",
             "tasks": "1.Стройка площади города , первых ЖК",
@@ -57,10 +57,9 @@ default_db = {
                 "miner": {"name": "Шахтер", "salary": "Договорная", "slots": 99999, "taken": 0, "desc": "Копать ресурсы."},
                 "les": {"name": "Дровосек", "salary": "Договорная", "slots": 99999, "taken": 0, "desc": "Рубить дерево."},
                 "pve": {"name": "ПВЕ", "salary": "50$ за работу", "slots": 99999, "taken": 0, "desc": "ХЗ"}
- 		 },
+            },
             "shops": []
-        },
-
+        }
     },
     "users_jobs": {},  
     "all_users": [] 
@@ -265,12 +264,12 @@ async def start_application(callback: CallbackQuery, state: FSMContext):
         "📝 **Заявка на добавление города**\n\n"
         "Пожалуйста, напишите одним сообщением:\n"
         "1. Название\n"
-	"2. Работы (зп и кол-во мест, если ограничено)\n"
-	"3. Союзники\n"
-	"4. Враги\n"
-	"5. Координаты спавна\n"
-	"6. Задачи (по типу доски объявлений и в целом)\n"
-	"7. Есть ли магазин (если есть, то напишите корды входа)\n\n"
+        "2. Работы (зп и кол-во мест, если ограничено)\n"
+        "3. Союзники\n"
+        "4. Враги\n"
+        "5. Координаты спавна\n"
+        "6. Задачи (по типу доски объявлений и в целом)\n"
+        "7. Есть ли магазин (если есть, то напишите корды входа)\n\n"
         "Напишите 'отмена', чтобы вернуться."
     )
     await callback.message.edit_text(text, parse_mode="Markdown")
@@ -401,7 +400,7 @@ async def cmd_broadcast(message: Message):
     
     await message.answer(f"🏁 Рассылка: ✅ {success}, ❌ {errors}")
 
-# --- ФОНОВАЯ ЗАДАЧА (КОТОРОЙ НЕ БЫЛО) ---
+# --- ФОНОВАЯ ЗАДАЧА ---
 async def broadcaster():
     while True:
         await asyncio.sleep(AD_INTERVAL)
@@ -419,7 +418,6 @@ async def broadcaster():
 async def main():
     load_db()
     print("Бот запущен...")
-    # Теперь эта функция существует и ошибка исчезнет
     asyncio.create_task(broadcaster())
     await dp.start_polling(bot)
 
