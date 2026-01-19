@@ -41,7 +41,7 @@ default_db = {
                 {"name": "Скупка", "coords": "X: 15277, Z: -11720"}
             ]
         },
-       "city2": {
+        "city2": {
             "name": "Великий китай",
             "owner_id": 8034060633,
             "coords": "X: 24713, Z: -6744",
@@ -49,12 +49,12 @@ default_db = {
             "enemies": "Oxland",
             "tasks": "1. Соединить китай. \n2. Построить великую империю. \n3. Помогать нуждающимся",
             "jobs": {
-                 "miner": {"name": "Шахтер", "salary": "?", "slots": 9999, "taken": 0, "desc": "Добывать булыжник. С вами свяжется мэр по поводу вашей работы."},
-		"les": {"name": "Дровосек", "salary": "?", "slots": 9999, "taken": 0, "desc": "Рубить дерево. С вами свяжется мэр по поводу вашей работы."}
+                "miner": {"name": "Шахтер", "salary": "?", "slots": 9999, "taken": 0, "desc": "Добывать булыжник. С вами свяжется мэр по поводу вашей работы."},
+                "les": {"name": "Дровосек", "salary": "?", "slots": 9999, "taken": 0, "desc": "Рубить дерево. С вами свяжется мэр по поводу вашей работы."}
             },
             "shops": [
-		{"name": "t spawn Великий Китай", "coords": "X: 24713, Z: -6744"}
-	]
+                {"name": "t spawn Великий Китай", "coords": "X: 24713, Z: -6744"}
+            ]
         },
         "city3": {
             "name": "Italian Imperi",
@@ -123,7 +123,7 @@ default_db = {
             },
             "shops": []
         },
-	"city8": {
+        "city8": {
             "name": "Джакарта",
             "owner_id": 8057012319,
             "coords": "X: , Z: ",
@@ -137,11 +137,11 @@ default_db = {
             },
             "shops": [
                 {"name": "Ашан", "coords": "X: -200, Z: -5255"},
-		{"name": "ShopProkyber", "coords": "X: 16352, Z: -8826"},
-		{"name": "Магнит", "coords": "X: 23285, Z: 1427"}
+                {"name": "ShopProkyber", "coords": "X: 16352, Z: -8826"},
+                {"name": "Магнит", "coords": "X: 23285, Z: 1427"}
             ]
         },
-	"city9": {
+        "city9": {
             "name": "Оренбург",
             "owner_id": 5172023955,
             "coords": "X: 11300, Z: -10700",
@@ -153,7 +153,7 @@ default_db = {
             },
             "shops": []
         },
-	"city10": {
+        "city10": {
             "name": "Bernad Imperia",
             "owner_id": 7730560352,
             "coords": "X: 2345, Z: -9955",
@@ -161,13 +161,13 @@ default_db = {
             "enemies": "Paris, Прага, Советская Бавария",
             "tasks": "1. ",
             "jobs": {
-                "englishjob": {"name": "работа", "salary": "зп$", "slots": места, "taken": 0, "desc": "задача. С вами свяжется мэр по поводу вашей работы."}
+                "englishjob": {"name": "работа", "salary": "зп$", "slots": 9999, "taken": 0, "desc": "задача. С вами свяжется мэр по поводу вашей работы."}
             },
             "shops": [
                 {"name": "Скупка", "coords": "X: , Z: "}
             ]
         },
-	"city11": {
+        "city11": {
             "name": "Германия",
             "owner_id": 5871381882,
             "coords": "X: ?, Z: ?",
@@ -176,7 +176,7 @@ default_db = {
             "tasks": "Развитие нации на топ 1",
             "jobs": {
                 "englishjob": {"name": "Строитель", "salary": "?", "slots": 9999, "taken": 0, "desc": "С вами свяжется мэр по поводу вашей работы."},
-		"les": {"name": "Шахтер", "salary": "?", "slots": 9999, "taken": 0, "desc": "С вами свяжется мэр по поводу вашей работы."},
+                "les": {"name": "Шахтер", "salary": "?", "slots": 9999, "taken": 0, "desc": "С вами свяжется мэр по поводу вашей работы."},
                 "pve": {"name": "Фермер", "salary": "?", "slots": 9999, "taken": 0, "desc": "С вами свяжется мэр по поводу вашей работы."}
 
             },
@@ -278,7 +278,7 @@ def get_cities_keyboard(action_prefix="city"):
 
 def get_city_menu_keyboard(city_code, user_id=None):
     buttons = [
-        [InlineKeyboardButton(text="🙋‍♂️ Хочу вступить", callback_data=f"join_{city_code}")], # НОВАЯ КНОПКА
+        [InlineKeyboardButton(text="🙋‍♂️ Хочу вступить", callback_data=f"join_{city_code}")],
         [InlineKeyboardButton(text="💼 Работы", callback_data=f"jobs_{city_code}")],
         [InlineKeyboardButton(text="🏪 Магазины", callback_data=f"showshops_{city_code}")],
         [InlineKeyboardButton(text="🤝 Союзники", callback_data=f"allies_{city_code}")],
@@ -401,12 +401,19 @@ async def show_info(callback: CallbackQuery):
 # --- ЗАЯВКА НА ДОБАВЛЕНИЕ ГОРОДА (АДМИНУ) ---
 @dp.callback_query(F.data == "menu_apply")
 async def start_application(callback: CallbackQuery, state: FSMContext):
-    text = (
-        "📝 <b>Заявка на добавление города</b>\n\n"
-        "Напишите одним сообщением:\n"
-        "1. Название\n2. Работы, зп и свободные места\n3. Союзники\n4. Враги\n5. Координаты спавна\n6. Задачи города\n7. Магазины и его координаты, если есть\n\n"
-        "Напишите 'отмена', чтобы вернуться."
-    )
+    # Используем тройные кавычки, чтобы не было ошибок переноса
+    text = """📝 <b>Заявка на добавление города</b>
+
+Напишите одним сообщением:
+1. Название
+2. Координаты спавна
+3. Союзники
+4. Враги
+5. Задачи города
+6. Работы, зп и свободные места
+7. Магазины и его координаты, если есть
+
+Напишите 'отмена', чтобы вернуться."""
     await callback.message.edit_text(text, parse_mode="HTML")
     await state.set_state(Form.waiting_for_application)
 
@@ -443,18 +450,19 @@ async def start_join_request(callback: CallbackQuery, state: FSMContext):
     city_code = callback.data.split("_")[1]
     city_name = db["cities"][city_code]["name"]
     
-    # Сохраняем код города в память, чтобы знать, кому отправлять
     await state.update_data(city_code=city_code)
     
-    text = (
-        f"🙋‍♂️ <b>Вступление в город: {city_name}</b>\n\n"
-        "Напишите небольшую анкету одним сообщением по образцу:\n"
-        "- Ваш ник в игре\n"
-        "- Что вы умеете\n"
-        "- Почему хотите к нам?\n
-	"- Ваша краткая история (по желанию)\n\n"
-        "Ваша заявка улетит лично Мэру города."
-    )
+    # Тройные кавычки (f-string) - самое надежное решение
+    text = f"""🙋‍♂️ <b>Вступление в город: {city_name}</b>
+
+Напишите небольшую анкету одним сообщением (например):
+- Ваш ник в игре
+- Что вы умеете
+- Почему хотите к нам?
+- Ваша краткая история (по желанию)
+
+Ваша заявка улетит лично Мэру города."""
+    
     await callback.message.edit_text(text, parse_mode="HTML")
     await state.set_state(Form.waiting_for_join_request)
 
@@ -469,14 +477,13 @@ async def process_join_request(message: Message, state: FSMContext):
         return
 
     city = db["cities"][city_code]
-    owner_id = city.get("owner_id", ADMIN_ID) # Если владельца нет, шлем админу
+    owner_id = city.get("owner_id", ADMIN_ID)
     
     user = message.from_user
     safe_name = html.escape(user.full_name)
     safe_username = html.escape(str(user.username)) if user.username else "Нет юзернейма"
     safe_text = html.escape(message.text)
     
-    # Ссылка для клика
     user_link = f"<a href='tg://user?id={user.id}'>{safe_name}</a>"
     
     mayor_msg = (
@@ -528,18 +535,15 @@ async def take_job(callback: CallbackQuery):
     db["users_jobs"][str_user_id] = {"city_code": city_code, "job_code": job_code}
     save_db()
     
-    # --- ЗАПУСК ТАЙМЕРА (5 минут) ---
     owner_id = city.get("owner_id")
     if owner_id:
         user = callback.from_user
         full_name = html.escape(user.full_name)
         username = user.username
         
-        # Создаем задачу
         task = asyncio.create_task(
             notify_owner_delayed(user_id, full_name, username, city["name"], job_info["name"], owner_id)
         )
-        # Сохраняем задачу
         pending_notifications[user_id] = task
     
     congrats_text = (
@@ -567,7 +571,6 @@ async def quit_job(callback: CallbackQuery):
     del db["users_jobs"][str_user_id]
     save_db()
     
-    # --- ОТМЕНА ТАЙМЕРА ---
     if user_id in pending_notifications:
         pending_notifications[user_id].cancel()
         del pending_notifications[user_id]
