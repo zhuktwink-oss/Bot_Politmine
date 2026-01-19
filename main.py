@@ -321,7 +321,7 @@ def add_user_to_db(user_id):
 async def cmd_start(message: Message):
     add_user_to_db(message.from_user.id)
     await message.answer(
-        f"👋 Привет! Твой ID: <code>{message.from_user.id}</code>\nДобро пожаловать в меню.", 
+        f"👋 Привет! Здесь ты можешь найти работу, город или найти работников и жетелей в свой город на Аврелии ХХ!\nДобро пожаловать в меню.", 
         reply_markup=get_main_menu(),
         parse_mode="HTML"
     )
