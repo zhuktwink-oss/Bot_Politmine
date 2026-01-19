@@ -265,7 +265,7 @@ def get_main_menu():
     buttons = [
         [InlineKeyboardButton(text="🏪 Список магазинов", callback_data="menu_shops")],
         [InlineKeyboardButton(text="🏙 Список городов", callback_data="menu_cities")],
-        [InlineKeyboardButton(text="📝 Отправить заявку на город", callback_data="menu_apply")]
+        [InlineKeyboardButton(text="📝 Отправить заявку на добавление города/Техподдержка", callback_data="menu_apply")]
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
