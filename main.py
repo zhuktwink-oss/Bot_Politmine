@@ -41,7 +41,7 @@ default_db = {
                 {"name": "Скупка", "coords": "X: 15277, Z: -11720"}
             ]
         },
-        "city2": {
+       "city2": {
             "name": "Великий китай",
             "owner_id": 8034060633,
             "coords": "X: 24713, Z: -6744",
@@ -49,12 +49,12 @@ default_db = {
             "enemies": "Oxland",
             "tasks": "1. Соединить китай. \n2. Построить великую империю. \n3. Помогать нуждающимся",
             "jobs": {
-                "miner": {"name": "Шахтер", "salary": "?", "slots": 9999, "taken": 0, "desc": "Добывать булыжник. С вами свяжется мэр по поводу вашей работы."},
-                "les": {"name": "Дровосек", "salary": "?", "slots": 9999, "taken": 0, "desc": "Рубить дерево. С вами свяжется мэр по поводу вашей работы."}
+                 "miner": {"name": "Шахтер", "salary": "?", "slots": 9999, "taken": 0, "desc": "Добывать булыжник. С вами свяжется мэр по поводу вашей работы."},
+		"les": {"name": "Дровосек", "salary": "?", "slots": 9999, "taken": 0, "desc": "Рубить дерево. С вами свяжется мэр по поводу вашей работы."}
             },
             "shops": [
-                {"name": "t spawn Великий Китай", "coords": "X: 24713, Z: -6744"}
-            ]
+		{"name": "t spawn Великий Китай", "coords": "X: 24713, Z: -6744"}
+	]
         },
         "city3": {
             "name": "Italian Imperi",
@@ -123,7 +123,7 @@ default_db = {
             },
             "shops": []
         },
-        "city8": {
+	"city8": {
             "name": "Джакарта",
             "owner_id": 8057012319,
             "coords": "X: , Z: ",
@@ -137,11 +137,11 @@ default_db = {
             },
             "shops": [
                 {"name": "Ашан", "coords": "X: -200, Z: -5255"},
-                {"name": "ShopProkyber", "coords": "X: 16352, Z: -8826"},
-                {"name": "Магнит", "coords": "X: 23285, Z: 1427"}
+		{"name": "ShopProkyber", "coords": "X: 16352, Z: -8826"},
+		{"name": "Магнит", "coords": "X: 23285, Z: 1427"}
             ]
         },
-        "city9": {
+	"city9": {
             "name": "Оренбург",
             "owner_id": 5172023955,
             "coords": "X: 11300, Z: -10700",
@@ -153,7 +153,7 @@ default_db = {
             },
             "shops": []
         },
-        "city10": {
+	"city10": {
             "name": "Bernad Imperia",
             "owner_id": 7730560352,
             "coords": "X: 2345, Z: -9955",
@@ -167,7 +167,7 @@ default_db = {
                 {"name": "Скупка", "coords": "X: , Z: "}
             ]
         },
-        "city11": {
+	"city11": {
             "name": "Германия",
             "owner_id": 5871381882,
             "coords": "X: ?, Z: ?",
@@ -176,7 +176,7 @@ default_db = {
             "tasks": "Развитие нации на топ 1",
             "jobs": {
                 "englishjob": {"name": "Строитель", "salary": "?", "slots": 9999, "taken": 0, "desc": "С вами свяжется мэр по поводу вашей работы."},
-                "les": {"name": "Шахтер", "salary": "?", "slots": 9999, "taken": 0, "desc": "С вами свяжется мэр по поводу вашей работы."},
+		"les": {"name": "Шахтер", "salary": "?", "slots": 9999, "taken": 0, "desc": "С вами свяжется мэр по поводу вашей работы."},
                 "pve": {"name": "Фермер", "salary": "?", "slots": 9999, "taken": 0, "desc": "С вами свяжется мэр по поводу вашей работы."}
 
             },
@@ -461,13 +461,21 @@ async def start_join_request(callback: CallbackQuery, state: FSMContext):
 - Почему хотите к нам?
 - Ваша краткая история (по желанию)
 
-Ваша заявка улетит лично Мэру города."""
+Ваша заявка улетит лично Мэру города.
+
+Напишите 'отмена', чтобы вернуться."""
     
     await callback.message.edit_text(text, parse_mode="HTML")
     await state.set_state(Form.waiting_for_join_request)
 
 @dp.message(Form.waiting_for_join_request)
 async def process_join_request(message: Message, state: FSMContext):
+    # --- ВОТ ЗДЕСЬ ДОБАВЛЕНА ПРОВЕРКА НА ОТМЕНУ ---
+    if message.text.lower() == 'отмена':
+        await state.clear()
+        await message.answer("Заявка отменена.", reply_markup=get_main_menu())
+        return
+        
     data = await state.get_data()
     city_code = data.get("city_code")
     
