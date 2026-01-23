@@ -372,7 +372,7 @@ class CheckSubscriptionMiddleware(BaseMiddleware):
                     [InlineKeyboardButton(text="📢 Подписаться на канал", url=CHANNEL_URL)],
                     [InlineKeyboardButton(text="✅ Я подписался", callback_data="check_subscription")]
                 ])
-                text = "⛔ <b>Доступ ограничен!</b>\n\nЧтобы пользоваться ботом, необходимо подписаться на наш канал."
+                text = "⛔ <b>Доступ ограничен!</b>\n\nЧтобы пользоваться ботом, пожалуйста, подпишитесь на группу обратной связи."
                 
                 if isinstance(event, CallbackQuery) and event.data == "check_subscription":
                     await event.answer("❌ Вы еще не подписались! Проверьте подписку.", show_alert=True)
