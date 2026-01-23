@@ -166,12 +166,12 @@ default_db = {
         "city10": {
             "name": "Bernad Imperia",
             "owner_id": 7730560352,
-            "coords": "X: 2345, Z: -9955",
-            "allies": "Бернад, Гамбург, Реф-Ера, вассал Каменногорск, Германия, Византия, Крепорлоид",
-            "enemies": "Paris, Прага, Советская Бавария",
-            "tasks": "?",
+            "coords": "X: 2359, Z: -9977",
+            "allies": "Византия, Германия, Криперлоид, Кёнигсберг",
+            "enemies": "Париж, Монолит, ЕС",
+            "tasks": "Создание южногерманской конфедерации",
             "jobs": {
-                "englishjob": {"name": "?", "salary": "?$", "slots": 0, "taken": 0, "desc": "?"}
+                "englishjob": {"name": "Армия", "salary": "?$", "slots": 50, "taken": 0, "desc": "С вами свяжется мэр по поводу вашей работы."}
             },
             "shops": []
         },
@@ -193,7 +193,7 @@ default_db = {
         },
 	"city12": {
             "name": "Шантамия",
-            "owner_id": ADMIN_ID,
+            "owner_id": 1203611337,
             "coords": "X: -20208, Z: -9532",
             "allies": "Нация Empire of Japan",
             "enemies": "Нет",
