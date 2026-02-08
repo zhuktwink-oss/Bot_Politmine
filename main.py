@@ -3,9 +3,9 @@ import logging
 import json
 import os
 import html
-from typing import Callable, Dict, Any, Awaitable
-from aiogram import Bot, Dispatcher, F, BaseMiddleware
-from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton, TelegramObject
+import time
+from aiogram import Bot, Dispatcher, F
+from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -14,37 +14,32 @@ from aiogram.fsm.storage.memory import MemoryStorage
 # --- КОНФИГУРАЦИЯ ---
 TOKEN = "8226548122:AAHdyihHKdrXHZr4W8oFuxtNaY8tQriG4RE"
 ADMIN_ID = 6131249570
-AD_INTERVAL = 31536000 # 1 год
+AD_INTERVAL = 777600  #
+REMINDER_INTERVAL = 43200 # 12 часов
 AD_TEXT = "Мой Ютуб: https://youtube.com/@megakruiiiutel?si=EwNMi2obVaqA_hJs. Если вы хотите подобную рекламу своего города/магаза в боте, пишите: @megakruiii"
 DB_FILE = "database.json"
-
-# --- НАСТРОЙКИ КАНАЛА ---
-CHANNEL_ID = "@sities_politmine_bot_tech"  # <-- ЮЗЕРНЕЙМ ТВОЕГО КАНАЛА
-CHANNEL_URL = "https://t.me/sities_politmine_bot_tech" # <-- ССЫЛКА НА КАНАЛ
 
 # --- ЛОГИРОВАНИЕ ---
 logging.basicConfig(level=logging.INFO)
 
-# --- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ДЛЯ ТАЙМЕРОВ ---
+# --- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ---
 pending_notifications = {}
 
-# --- БАЗА ДАННЫХ (ТВОЯ ПОЛНАЯ ВЕРСИЯ) ---
+# --- БАЗА ДАННЫХ ---
 default_db = {
     "cities": {
         "city1": {
             "name": "Стальгорнскiй Ординатъ",
-            "owner_id": ADMIN_ID,
+            "owner_id": 6131249570,
             "coords": "X: 15288, Z: -11719",
-            "allies": "ЕС, Петрозаводск, Balashow, Велики китай",
+            "allies": "ЕС, Петрозаводск, Balashow, Великий китай, Ягодники",
             "enemies": "СССР",
-            "tasks": "1. Перестроить магаз, пополнить каз. \n2. Набрать игроков. \n3. Основаться на территориях.",
+            "tasks": "1. Перестроить магаз и каз. \n2. Набрать игроков. \n3. Основаться на территориях.",
             "jobs": {
-                "miner": {"name": "Шахтер", "salary": "2$/стак", "slots": 5, "taken": 0, "desc": "Добывайте железную руду (блоками). С вами свяжется мэр по поводу вашей работы."},
-                "les": {"name": "Дровосек", "salary": "1.5$/стак", "slots": 5, "taken": 0, "desc": "Рубить дуб и сажать обратно. С вами свяжется мэр по поводу вашей работы."}
+                "miner": {"name": "Шахтер", "salary": "10$", "slots": 5, "taken": 0, "desc": "Добывайте железную руду (блоками). С вами свяжется мэр по поводу вашей работы."},
+                "les": {"name": "Дровосек", "salary": "1.5$", "slots": 5, "taken": 0, "desc": "Рубить дуб и сажать обратно. С вами свяжется мэр по поводу вашей работы."}
             },
-            "shops": [
-                {"name": "Скупка", "coords": "X: 15277, Z: -11720"}
-            ]
+            "shops": [{"name": "Скупка", "coords": "X: 15277, Z: -11720"}]
         },
         "city2": {
             "name": "Великий китай",
@@ -54,29 +49,22 @@ default_db = {
             "enemies": "Oxland",
             "tasks": "1. Соединить китай. \n2. Построить великую империю. \n3. Помогать нуждающимся",
             "jobs": {
-                "miner": {"name": "Шахтер", "salary": "?", "slots": 50, "taken": 0, "desc": "Добывать булыжник. С вами свяжется мэр по поводу вашей работы."},
-                "les": {"name": "Дровосек", "salary": "?", "slots": 50, "taken": 0, "desc": "Рубить дерево. С вами свяжется мэр по поводу вашей работы."}
+                "miner": {"name": "Шахтер", "salary": "0", "slots": 50, "taken": 0, "desc": "Добывать булыжник. С вами свяжется мэр по поводу вашей работы."},
+                "les": {"name": "Дровосек", "salary": "0", "slots": 50, "taken": 0, "desc": "Рубить дерево. С вами свяжется мэр по поводу вашей работы."}
             },
-            "shops": [
-                {"name": "t spawn Великий Китай", "coords": "X: 24713, Z: -6744"}
-            ]
+            "shops": [{"name": "t spawn Великий Китай", "coords": "X: 24713, Z: -6744"}]
         },
         "city3": {
-            "name": "Посольство Рая",
-            "owner_id": 6301635399,
-            "coords": "X: 7848, Z: -12068", 
-            "allies": "Нансийская Империя",
-            "enemies": "Фрайкорбург",
-            "tasks": "Служить и работать на разных работах, весело проводить время в городе",
+            "name": "Italian Imperi",
+            "owner_id": 6131249570,
+            "coords": "X: ?, Z: ?", 
+            "allies": "ЕС, Монолит, Бразил, SPQR",
+            "enemies": "СССР",
+            "tasks": "Стройка площади города, первых ЖК",
             "jobs": {
-                "miner": {"name": "Шахтер", "salary": "15$/неделя", "slots": 50, "taken": 0, "desc": "С вами свяжется мэр по поводу вашей работы."},
-                "les": {"name": "Строитель", "salary": "15$/неделя", "slots": 50, "taken": 0, "desc": "С вами свяжется мэр по поводу вашей работы."},
-                "pve": {"name": "Воин", "salary": "15$/неделя", "slots": 50, "taken": 0, "desc": "С вами свяжется мэр по поводу вашей работы."},
-		"min": {"name": "Фермер", "salary": "15$/неделя", "slots": 50, "taken": 0, "desc": "С вами свяжется мэр по поводу вашей работы."},
-                "lesver": {"name": "Переговорщик", "salary": "15$/неделя", "slots": 50, "taken": 0, "desc": "С вами свяжется мэр по поводу вашей работы."},
-                "pvesq": {"name": "Кузнец", "salary": "15$/неделя", "slots": 50, "taken": 0, "desc": "С вами свяжется мэр по поводу вашей работы."},
-		"mfqner": {"name": "Варщик алкоголя", "salary": "15$/неделя", "slots": 50, "taken": 0, "desc": "С вами свяжется мэр по поводу вашей работы."},
-                "lesas": {"name": "Экономист", "salary": "15$/неделя", "slots": 50, "taken": 0, "desc": "С вами свяжется мэр по поводу вашей работы."}
+                "miner": {"name": "Шахтер", "salary": "0", "slots": 1, "taken": 0, "desc": "Копать ресурсы."},
+                "les": {"name": "Дровосек", "salary": "0", "slots": 1, "taken": 0, "desc": "Рубить дерево."},
+                "pve": {"name": "ПВЕ", "salary": "50$", "slots": 1, "taken": 0, "desc": "ХЗ"}
             },
             "shops": []
         },
@@ -100,7 +88,7 @@ default_db = {
             "enemies": "Нет",
             "tasks": "Всестороннее экономическое развитие",
             "jobs": {
-                "englishJob": {"name": "Фермер", "salary": "2$/час", "slots": 50, "taken": 0, "desc": "С вами свяжется мэр по поводу вашей работы."}
+                "englishJob": {"name": "Фермер", "salary": "2$", "slots": 50, "taken": 0, "desc": "Фармить. С вами свяжется мэр по поводу вашей работы."}
             },
             "shops": []
         },
@@ -110,13 +98,11 @@ default_db = {
             "coords": "X: -11525, Z: 954",
             "allies": "Нация",
             "enemies": "Нет",
-            "tasks": "1. Развить город, прокачать максимальный век\n2. Найти много людей в город\n3. Накопить владельцу на донат",
+            "tasks": "1. Развить город\n2. Найти людей\n3. Накопить на донат",
             "jobs": {
-                "englishjob": {"name": "?", "salary": "?$", "slots": 50, "taken": 0, "desc": "С вами свяжется мэр по поводу вашей работы."}
+                "englishjob": {"name": "?", "salary": "?$", "slots": 50, "taken": 0, "desc": "Разнорабочий. С вами свяжется мэр по поводу вашей работы."}
             },
-            "shops": [
-                {"name": "Магаз", "coords": "X: -11527, Z: 960"}
-            ]
+            "shops": [{"name": "Магаз", "coords": "X: -11527, Z: 960"}]
         },
         "city7": {
             "name": "Brazill",
@@ -124,26 +110,26 @@ default_db = {
             "coords": "X: 13289, Z: 2148",
             "allies": "Хумаита-Дистрикт, Япония",
             "enemies": "Нет",
-            "tasks": "НАШ ГОРОД = ГОРОД ПОСТАВЩИК ДЕРЕВА! ИЩЕМ ДОСТОЙНЫХ ЛЮДЕЙ ДЛЯ ФАРМА, ЗАРПЛАТА БУДЕТ ЗАВИСИТЬ ОТ КОЛ-ВА СТАКОВ! ПИСАТЬ В ТГ @gamevea МЫ ИСКАЛИ ИМЕННО ТЕБЯ!!",
+            "tasks": "ГОРОД ПОСТАВЩИК ДЕРЕВА!",
             "jobs": {
-                "englishjob": {"name": "Лесоруб", "salary": "Зависит от выполненной работы", "slots": 2, "taken": 0, "desc": "С вами свяжется мэр по поводу вашей работы."},
-                "miner": {"name": "Шахтер", "salary": "Зависит от выполненной работы", "slots": 2, "taken": 0, "desc": "С вами свяжется мэр по поводу вашей работы."},
-                "builder": {"name": "Строитель", "salary": "Зависит от выполненной работы", "slots": 2, "taken": 0, "desc": "С вами свяжется мэр по поводу вашей работы."},
-                "pve": {"name": "Военнослужащий", "salary": "Зависит от выполненной работы", "slots": 2, "taken": 0, "desc": "С вами свяжется мэр по поводу вашей работы."}
+                "englishjob": {"name": "Лесоруб", "salary": "Сдельная", "slots": 2, "taken": 0, "desc": "Рубить лес. С вами свяжется мэр по поводу вашей работы."},
+                "miner": {"name": "Шахтер", "salary": "Сдельная", "slots": 2, "taken": 0, "desc": "Копать шахту. С вами свяжется мэр по поводу вашей работы."},
+                "builder": {"name": "Строитель", "salary": "Сдельная", "slots": 2, "taken": 0, "desc": "Строить. С вами свяжется мэр по поводу вашей работы."},
+                "pve": {"name": "Военнослужащий", "salary": "Сдельная", "slots": 2, "taken": 0, "desc": "Служить. С вами свяжется мэр по поводу вашей работы."}
             },
             "shops": []
         },
         "city8": {
             "name": "Джакарта",
             "owner_id": 8057012319,
-            "coords": "X: , Z: ",
+            "coords": "X: 0, Z: 0",
             "allies": "Хроноград, Муром, Токио",
             "enemies": "Монолит, Византия",
-            "tasks": "1. Забрать чд. \n2. Отстроить город и жить",
+            "tasks": "1. Забрать чд. \n2. Отстроить город",
             "jobs": {
-                "miner": {"name": "Шахтер", "salary": "5$ за 64 железа, 15$ за 64 алмазов", "slots": 50, "taken": 0, "desc": "Копать ресурсы. С вами свяжется мэр по поводу вашей работы."},
-                "les": {"name": "Дровосек", "salary": "2-3$ за 64 дуба", "slots": 50, "taken": 0, "desc": "Рубить дуб. С вами свяжется мэр по поводу вашей работы."},
-                "pve": {"name": "Фармер", "salary": "4-10$ за 64 пороха", "slots": 50, "taken": 0, "desc": "С вами свяжется мэр по поводу вашей работы."}
+                "miner": {"name": "Шахтер", "salary": "5$", "slots": 50, "taken": 0, "desc": "Копать железо. С вами свяжется мэр по поводу вашей работы."},
+                "les": {"name": "Дровосек", "salary": "3$", "slots": 50, "taken": 0, "desc": "Рубить дуб. С вами свяжется мэр по поводу вашей работы."},
+                "pve": {"name": "Фармер", "salary": "10$", "slots": 50, "taken": 0, "desc": "Фармить порох. С вами свяжется мэр по поводу вашей работы."}
             },
             "shops": [
                 {"name": "Ашан", "coords": "X: -200, Z: -5255"},
@@ -157,7 +143,7 @@ default_db = {
             "coords": "X: 11300, Z: -10700",
             "allies": "Нет",
             "enemies": "Асуньсон, Тамбов",
-            "tasks": "Контролировать Урал и пред уралье",
+            "tasks": "Контролировать Урал",
             "jobs": {
                 "les": {"name": "Лесоруб", "salary": "?", "slots": 50, "taken": 0, "desc": "Рубить деревья. С вами свяжется мэр по поводу вашей работы."}
             },
@@ -166,12 +152,12 @@ default_db = {
         "city10": {
             "name": "Bernad Imperia",
             "owner_id": 7730560352,
-            "coords": "X: 2359, Z: -9977",
-            "allies": "Византия, Германия, Криперлоид, Кёнигсберг",
-            "enemies": "Париж, Монолит, ЕС",
-            "tasks": "Создание южногерманской конфедерации",
+            "coords": "X: 2345, Z: -9955",
+            "allies": "Бернад, Гамбург, Германия",
+            "enemies": "Paris, Прага",
+            "tasks": "Развитие",
             "jobs": {
-                "englishjob": {"name": "Армия", "salary": "?$", "slots": 50, "taken": 0, "desc": "С вами свяжется мэр по поводу вашей работы."}
+                "englishjob": {"name": "Разнорабочий", "salary": "Договорная", "slots": 50, "taken": 0, "desc": "Выполнение поручений. С вами свяжется мэр по поводу вашей работы."}
             },
             "shops": []
         },
@@ -179,66 +165,20 @@ default_db = {
             "name": "Германия",
             "owner_id": 5871381882,
             "coords": "X: ?, Z: ?",
-            "allies": "Paris, нация The German Empire",
+            "allies": "Paris, German Empire",
             "enemies": "Хроноград, Англия",
-            "tasks": "Развитие нации на топ 1",
+            "tasks": "Топ 1",
             "jobs": {
-                "englishjob": {"name": "Строитель", "salary": "?", "slots": 50, "taken": 0, "desc": "С вами свяжется мэр по поводу вашей работы."},
-                "les": {"name": "Шахтер", "salary": "?", "slots": 50, "taken": 0, "desc": "С вами свяжется мэр по поводу вашей работы."},
-                "pve": {"name": "Фермер", "salary": "?", "slots": 50, "taken": 0, "desc": "С вами свяжется мэр по поводу вашей работы."}
+                "englishjob": {"name": "Строитель", "salary": "?", "slots": 50, "taken": 0, "desc": "Строить. С вами свяжется мэр по поводу вашей работы."},
+                "les": {"name": "Шахтер", "salary": "?", "slots": 50, "taken": 0, "desc": "Копать. С вами свяжется мэр по поводу вашей работы."},
+                "pve": {"name": "Фермер", "salary": "?", "slots": 50, "taken": 0, "desc": "Фармить. С вами свяжется мэр по поводу вашей работы."}
             },
-            "shops": [
-                {"name": "Золотая Залупа", "coords": "X: ?, Z: ?"}
-            ]
-        },
-	"city12": {
-            "name": "Шантамия",
-            "owner_id": 1203611337,
-            "coords": "X: -20208, Z: -9532",
-            "allies": "Нация Empire of Japan",
-            "enemies": "Нет",
-            "tasks": "За каждую бочку песка 25 монет обращаться-@FUGUNIT",
-            "jobs": {
-                "englishjob": {"name": "?", "salary": "?", "slots": 0, "taken": 0, "desc": "?"}
-            },
-            "shops": [
-                {"name": "Шантамаркет", "coords": "X: 4409, Z: -1799"}
-            ]
-        },
-	"city13": {
-            "name": "Западнорусское княжество",
-            "owner_id": 1774039816,
-            "coords": "X: 9984, Z: -11920",
-            "allies": "Montavia",
-            "enemies": "Нет",
-            "tasks": "Построить сильное государство с элементами рп",
-            "jobs": {
-                "englishjob": {"name": "Лесоруб", "salary": "?$", "slots": 50, "taken": 0, "desc": "задача. С вами свяжется мэр по поводу вашей работы."},
-		"pve": {"name": "ПВП", "salary": "?$", "slots": 50, "taken": 0, "desc": "С вами свяжется мэр по поводу вашей работы."}
-            },
-            "shops": []
-        },
-	"city14": {
-            "name": "ГДP",
-            "owner_id": 6789816316,
-            "coords": "X: 2546, Z: -10818",
-            "allies": "Нет",
-            "enemies": "Нет",
-            "tasks": "Нет",
-            "jobs": {
-                "miner": {"name": "Лесоруб", "salary": "?$", "slots": 50, "taken": 0, "desc": "С вами свяжется мэр по поводу вашей работы."},
-                "les": {"name": "Строитель", "salary": "?$", "slots": 50, "taken": 0, "desc": "С вами свяжется мэр по поводу вашей работы."},
-                "pve": {"name": "Воин", "salary": "?$", "slots": 50, "taken": 0, "desc": "С вами свяжется мэр по поводу вашей работы."},
-		"min": {"name": "Фермер", "salary": "?$", "slots": 50, "taken": 0, "desc": "С вами свяжется мэр по поводу вашей работы."},
-                "lesver": {"name": "Рабочий на заводе", "salary": "?$", "slots": 50, "taken": 0, "desc": "С вами свяжется мэр по поводу вашей работы."}
-            },
-            "shops": []
-        },
-
+            "shops": [{"name": "Золотая Залупа", "coords": "X: ?, Z: ?"}]
+        }
     },
-    "users_jobs": {},  
+    "users_jobs": {},
     "all_users": [
-        5168622042,
+       	5168622042,
 	8538038923,
 	6107282284,
 	8056310759,
@@ -295,7 +235,9 @@ default_db = {
         1087968824,
         7032660827,
         8542988136
-    ]
+    ],
+    "active_alliances": [],
+    "pending_rewards": []
 }
 
 db = {}
@@ -309,16 +251,40 @@ def load_db():
         try:
             with open(DB_FILE, "r", encoding="utf-8") as f:
                 db = json.load(f)
+            
             updated = False
-            for city_code, city_data in db["cities"].items():
-                if "owner_id" not in city_data:
-                    city_data["owner_id"] = ADMIN_ID
+            if "active_alliances" not in db:
+                db["active_alliances"] = []
+                updated = True
+            if "pending_rewards" not in db:
+                db["pending_rewards"] = []
+                updated = True
+                
+            for k, v in default_db["cities"].items():
+                if k not in db["cities"]:
+                    db["cities"][k] = v
                     updated = True
-                if "shops" not in city_data:
-                    city_data["shops"] = []
-                    updated = True
+                else:
+                    if "owner_id" not in db["cities"][k]:
+                        db["cities"][k]["owner_id"] = v["owner_id"]
+                        updated = True
+                    # ИСПРАВЛЕНИЕ СЛОТОВ:
+                    # Проходим по всем работам и если видим 9999, меняем на 50
+                    if "jobs" in db["cities"][k]:
+                        for job_key, job_data in db["cities"][k]["jobs"].items():
+                            if job_data.get("slots") == 9999:
+                                job_data["slots"] = 50
+                                updated = True
+
+            code_users = set(default_db["all_users"])
+            file_users = set(db.get("all_users", []))
+            if len(code_users) > len(file_users):
+                db["all_users"] = list(code_users.union(file_users))
+                updated = True
+
             if updated:
                 save_db()
+                logging.info("БД обновлена: слоты поправлены на 50.")
         except Exception as e:
             logging.error(f"Ошибка загрузки БД: {e}")
             db = default_db
@@ -330,7 +296,7 @@ def save_db():
     except Exception as e:
         logging.error(f"Ошибка сохранения БД: {e}")
 
-# --- ФУНКЦИЯ ОТЛОЖЕННОГО УВЕДОМЛЕНИЯ О РАБОТЕ ---
+# --- ФУНКЦИИ ---
 async def notify_owner_delayed(user_id, user_full_name, user_username, city_name, job_name, owner_id):
     try:
         await asyncio.sleep(300) 
@@ -346,64 +312,43 @@ async def notify_owner_delayed(user_id, user_full_name, user_username, city_name
         )
         await bot.send_message(owner_id, text, parse_mode="HTML")
     except asyncio.CancelledError:
-        logging.info(f"Уведомление для {user_id} отменено (уволился).")
+        pass
     except Exception as e:
         logging.error(f"Ошибка отправки владельцу: {e}")
     finally:
         if user_id in pending_notifications:
             del pending_notifications[user_id]
 
-# --- MIDDLEWARE ПРОВЕРКИ ПОДПИСКИ ---
-class CheckSubscriptionMiddleware(BaseMiddleware):
-    async def __call__(
-        self,
-        handler: Callable[[TelegramObject, Dict[str, Any]], Awaitable[Any]],
-        event: TelegramObject,
-        data: Dict[str, Any]
-    ) -> Any:
-        user = data.get("event_from_user")
-        if not user:
-            return await handler(event, data)
-
-        try:
-            member = await bot.get_chat_member(chat_id=CHANNEL_ID, user_id=user.id)
-            if member.status in ["left", "kicked"]:
-                kb = InlineKeyboardMarkup(inline_keyboard=[
-                    [InlineKeyboardButton(text="📢 Подписаться на канал", url=CHANNEL_URL)],
-                    [InlineKeyboardButton(text="✅ Я подписался", callback_data="check_subscription")]
-                ])
-                text = "⛔ <b>Доступ ограничен!</b>\n\nЧтобы пользоваться ботом, пожалуйста, подпишитесь на группу обратной связи."
-                
-                if isinstance(event, CallbackQuery) and event.data == "check_subscription":
-                    await event.answer("❌ Вы еще не подписались! Проверьте подписку.", show_alert=True)
-                    return 
-
-                if isinstance(event, Message):
-                    await event.answer(text, reply_markup=kb, parse_mode="HTML")
-                elif isinstance(event, CallbackQuery):
-                    await event.message.answer(text, reply_markup=kb, parse_mode="HTML")
-                    await event.answer()
-                return 
-        except Exception as e:
-            logging.error(f"Ошибка проверки подписки: {e}")
-
-        return await handler(event, data)
+def get_owned_city(user_id):
+    """Возвращает код города, которым владеет пользователь, или None"""
+    for code, city in db["cities"].items():
+        if city.get("owner_id") == user_id:
+            return code
+    return None
 
 # --- ИНИЦИАЛИЗАЦИЯ ---
 bot = Bot(token=TOKEN)
 storage = MemoryStorage()
 dp = Dispatcher(storage=storage)
 
+# Состояния
 class Form(StatesGroup):
     waiting_for_application = State()
     waiting_for_join_request = State()
+    waiting_for_idea = State()
+
+class AllianceForm(StatesGroup):
+    waiting_for_type = State()
+    waiting_for_against = State()
 
 # --- КЛАВИАТУРЫ ---
 def get_main_menu():
     buttons = [
+        [InlineKeyboardButton(text="💡 Предложить идею", callback_data="menu_idea")],
+        [InlineKeyboardButton(text="🤝 Союзы", callback_data="menu_alliances")],
         [InlineKeyboardButton(text="🏪 Список магазинов", callback_data="menu_shops")],
         [InlineKeyboardButton(text="🏙 Список городов", callback_data="menu_cities")],
-        [InlineKeyboardButton(text="📝 Отправить заявку на добавление города/Техподдержка", callback_data="menu_apply")]
+        [InlineKeyboardButton(text="📝 Заявка на город / Техподдержка", callback_data="menu_apply")]
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
@@ -429,6 +374,11 @@ def get_city_menu_keyboard(city_code, user_id=None):
         user_job = db["users_jobs"][str_user_id]
         if user_job["city_code"] == city_code:
             buttons.append([InlineKeyboardButton(text="🚫 Уволиться", callback_data=f"quitjob_{city_code}")])
+    
+    user_owned_city = get_owned_city(user_id)
+    if user_owned_city and user_owned_city != city_code:
+        buttons.append([InlineKeyboardButton(text="🕊 Заключить союз", callback_data=f"diplomacy_{city_code}")])
+
     buttons.append([InlineKeyboardButton(text="🔙 К списку городов", callback_data="menu_cities")])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
@@ -455,22 +405,11 @@ def add_user_to_db(user_id):
         save_db()
 
 # --- ХЕНДЛЕРЫ ---
-@dp.callback_query(F.data == "check_subscription")
-async def subscription_confirmed(callback: CallbackQuery):
-    await callback.message.delete()
-    await callback.answer("✅ Подписка подтверждена! Добро пожаловать.")
-    add_user_to_db(callback.from_user.id)
-    await callback.message.answer(
-        f"👋 Привет! Здесь ты можешь найти работу, город или найти работников и жетелей в свой город на Аврелии ХХ!\nДобро пожаловать в меню.", 
-        reply_markup=get_main_menu(),
-        parse_mode="HTML"
-    )
-
 @dp.message(Command("start"))
 async def cmd_start(message: Message):
     add_user_to_db(message.from_user.id)
     await message.answer(
-        f"👋 Привет! Здесь ты можешь найти работу, город или найти работников и жетелей в свой город на Аврелии ХХ!\nДобро пожаловать в меню.", 
+        f"👋 Привет! Добро пожаловать в меню.", 
         reply_markup=get_main_menu(),
         parse_mode="HTML"
     )
@@ -479,6 +418,246 @@ async def cmd_start(message: Message):
 async def back_to_main(callback: CallbackQuery):
     await callback.message.edit_text("Выбери действие:", reply_markup=get_main_menu())
 
+# --- ХЕНДЛЕРЫ: ИДЕИ ---
+@dp.callback_query(F.data == "menu_idea")
+async def start_idea(callback: CallbackQuery, state: FSMContext):
+    text = (
+        "💡 **Предложить идею для видео**\n\n"
+        "Напишите вашу идею. Если она будет реализована, вы получите награду (монеты)!\n"
+        "Напишите 'отмена', чтобы вернуться."
+    )
+    await callback.message.edit_text(text, parse_mode="Markdown")
+    await state.set_state(Form.waiting_for_idea)
+
+@dp.message(Form.waiting_for_idea)
+async def process_idea(message: Message, state: FSMContext):
+    if message.text.lower() == 'отмена':
+        await state.clear()
+        await message.answer("Отменено.", reply_markup=get_main_menu())
+        return
+
+    idea_text = message.text
+    user = message.from_user
+    safe_name = html.escape(user.full_name)
+    user_link = f"<a href='tg://user?id={user.id}'>{safe_name}</a>"
+
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="👍 Понравилось (Напомнить)", callback_data=f"idea_like_{user.id}")],
+        [InlineKeyboardButton(text="👎 Не понравилось", callback_data="idea_dislike")]
+    ])
+
+    admin_msg = (
+        f"💡 <b>НОВАЯ ИДЕЯ ОТ ПОДПИСЧИКА!</b>\n\n"
+        f"👤 От: {user_link}\n"
+        f"🆔 ID: <code>{user.id}</code>\n\n"
+        f"📜 <b>Суть:</b>\n{html.escape(idea_text)}"
+    )
+
+    try:
+        await bot.send_message(ADMIN_ID, admin_msg, reply_markup=kb, parse_mode="HTML")
+        await message.answer("✅ Ваша идея отправлена администратору!", reply_markup=get_main_menu())
+    except Exception as e:
+        await message.answer("Ошибка отправки.", reply_markup=get_main_menu())
+    
+    await state.clear()
+
+@dp.callback_query(F.data == "idea_dislike")
+async def idea_dislike(callback: CallbackQuery):
+    await callback.message.delete()
+    await callback.answer("Идея отклонена.")
+
+@dp.callback_query(F.data.startswith("idea_like_"))
+async def idea_like(callback: CallbackQuery):
+    user_id = int(callback.data.split("_")[2])
+    
+    reward_entry = {
+        "user_id": user_id,
+        "timestamp": time.time(),
+    }
+    db["pending_rewards"].append(reward_entry)
+    save_db()
+
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="💰 Выслал монеты", callback_data=f"idea_sent_{user_id}")]
+    ])
+    
+    await callback.message.edit_reply_markup(reply_markup=kb)
+    await callback.answer("Ок! Буду напоминать.")
+
+@dp.callback_query(F.data.startswith("idea_sent_"))
+async def idea_sent(callback: CallbackQuery):
+    user_id = int(callback.data.split("_")[2])
+    
+    db["pending_rewards"] = [item for item in db["pending_rewards"] if item["user_id"] != user_id]
+    save_db()
+
+    await callback.message.delete()
+    await callback.answer("Награда подтверждена.")
+    
+    try:
+        await bot.send_message(user_id, "🎉 <b>Поздравляем!</b>\nВаша идея понравилась администратору, вам зачислены монеты!", parse_mode="HTML")
+    except: pass
+
+# --- ХЕНДЛЕРЫ: ДИПЛОМАТИЯ ---
+@dp.callback_query(F.data == "menu_alliances")
+async def show_alliances(callback: CallbackQuery):
+    alliances = db.get("active_alliances", [])
+    if not alliances:
+        text = "🤝 <b>Активные союзы</b>\n\nНа данный момент союзов не заключено."
+    else:
+        text = "🤝 <b>Активные союзы</b>\n\n"
+        for al in alliances:
+            c1_name = db["cities"][al["source"]]["name"]
+            c2_name = db["cities"][al["target"]]["name"]
+            
+            against_name = "Неизвестно"
+            if al["against"] in db["cities"]:
+                against_name = db["cities"][al["against"]]["name"]
+            elif al["against"] == "unknown":
+                against_name = "Пока неизвестно"
+                
+            text += (
+                f"🔹 <b>{c1_name}</b> + <b>{c2_name}</b>\n"
+                f"Тип: {al['type']}\n"
+                f"Против: <i>{against_name}</i>\n\n"
+            )
+            
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Назад", callback_data="main_menu")]])
+    await callback.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
+
+@dp.callback_query(F.data.startswith("diplomacy_"))
+async def start_diplomacy(callback: CallbackQuery, state: FSMContext):
+    target_city_code = callback.data.split("_")[1]
+    source_city_code = get_owned_city(callback.from_user.id)
+    
+    if not source_city_code:
+        await callback.answer("Вы не являетесь мэром!", show_alert=True)
+        return
+
+    await state.update_data(target=target_city_code, source=source_city_code)
+    
+    buttons = [
+        [InlineKeyboardButton(text="💰 Экономический", callback_data="all_type_Экономический")],
+        [InlineKeyboardButton(text="⚔️ Захватнический", callback_data="all_type_Захватнический")],
+        [InlineKeyboardButton(text="🛡 Оборонительный", callback_data="all_type_Оборонительный")],
+        [InlineKeyboardButton(text="🌐 Все варианты", callback_data="all_type_Полный")],
+        [InlineKeyboardButton(text="🔙 Отмена", callback_data="main_menu")]
+    ]
+    await callback.message.edit_text("Выберите тип союза:", reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons))
+    await state.set_state(AllianceForm.waiting_for_type)
+
+@dp.callback_query(F.data.startswith("all_type_"))
+async def diplomacy_set_type(callback: CallbackQuery, state: FSMContext):
+    alliance_type = callback.data.split("_")[2]
+    await state.update_data(type=alliance_type)
+    
+    buttons = []
+    data = await state.get_data()
+    source = data['source']
+    target = data['target']
+    
+    for code, city in db["cities"].items():
+        if code != source and code != target:
+            buttons.append([InlineKeyboardButton(text=city["name"], callback_data=f"all_against_{code}")])
+            
+    buttons.append([InlineKeyboardButton(text="❓ Пока неизвестно", callback_data="all_against_unknown")])
+    buttons.append([InlineKeyboardButton(text="🔙 Отмена", callback_data="main_menu")])
+    
+    await callback.message.edit_text("Против кого этот союз?", reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons))
+    await state.set_state(AllianceForm.waiting_for_against)
+
+@dp.callback_query(F.data.startswith("all_against_"))
+async def diplomacy_send_request(callback: CallbackQuery, state: FSMContext):
+    against_code = callback.data.replace("all_against_", "")
+    data = await state.get_data()
+    
+    source_city = db["cities"][data['source']]
+    target_city = db["cities"][data['target']]
+    target_mayor_id = target_city.get("owner_id", ADMIN_ID)
+    
+    sender = callback.from_user
+    sender_link = f"<a href='tg://user?id={sender.id}'>{html.escape(sender.full_name)}</a>"
+    against_name = "Пока неизвестно"
+    if against_code in db["cities"]:
+        against_name = db["cities"][against_code]["name"]
+        
+    request_msg = (
+        f"🕊 <b>ПРЕДЛОЖЕНИЕ СОЮЗА!</b>\n\n"
+        f"🏙 От города: <b>{source_city['name']}</b>\n"
+        f"👤 Мэр: {sender_link} (@{sender.username})\n\n"
+        f"📜 Тип: <b>{data['type']}</b>\n"
+        f"🎯 Против: <b>{against_name}</b>\n\n"
+        f"Что будем делать?"
+    )
+    
+    cb_data = f"{data['source']}|{data['target']}|{against_code}|{data['type']}"
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✅ Заключить", callback_data=f"al_acc|{cb_data}")],
+        [InlineKeyboardButton(text="❌ Отклонить", callback_data=f"al_dec|{data['source']}")]
+    ])
+    
+    try:
+        await bot.send_message(target_mayor_id, request_msg, reply_markup=kb, parse_mode="HTML")
+        await callback.message.edit_text("✅ Предложение союза отправлено! Ожидайте ответа.", reply_markup=get_main_menu())
+    except Exception as e:
+        await callback.message.edit_text(f"Ошибка отправки (мэр недоступен): {e}", reply_markup=get_main_menu())
+    
+    await state.clear()
+
+@dp.callback_query(F.data.startswith("al_acc|"))
+async def diplomacy_accept(callback: CallbackQuery):
+    try:
+        parts = callback.data.split("|")
+        source = parts[1]
+        target = parts[2]
+        against = parts[3]
+        atype = parts[4]
+        
+        new_alliance = {
+            "source": source,
+            "target": target,
+            "against": against,
+            "type": atype
+        }
+        db["active_alliances"].append(new_alliance)
+        save_db()
+        
+        await callback.message.delete()
+        await callback.answer("Союз заключен!")
+        
+        source_mayor = db["cities"][source].get("owner_id")
+        target_name = db["cities"][target]["name"]
+        if source_mayor:
+            try:
+                await bot.send_message(source_mayor, f"✅ Город <b>{target_name}</b> принял ваше предложение о союзе!", parse_mode="HTML")
+            except: pass
+            
+    except Exception as e:
+        logging.error(f"Alliance error: {e}")
+        await callback.answer("Ошибка.", show_alert=True)
+
+@dp.callback_query(F.data.startswith("al_dec|"))
+async def diplomacy_decline_ask(callback: CallbackQuery):
+    source_code = callback.data.split("|")[1]
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="Да, уверен", callback_data=f"al_dec_confirm|{source_code}")],
+        [InlineKeyboardButton(text="Нет, вернуться", callback_data="ignore")]
+    ])
+    await callback.message.edit_text(callback.message.html_text + "\n\n❓ <b>Вы уверены, что хотите отклонить?</b>", reply_markup=kb, parse_mode="HTML")
+
+@dp.callback_query(F.data.startswith("al_dec_confirm|"))
+async def diplomacy_decline_confirm(callback: CallbackQuery):
+    source_code = callback.data.split("|")[1]
+    source_mayor = db["cities"][source_code].get("owner_id")
+    await callback.message.delete()
+    await callback.answer("Отклонено.")
+    if source_mayor:
+        try:
+            await bot.send_message(source_mayor, f"❌ Предложение о союзе было отклонено.", parse_mode="HTML")
+        except: pass
+
+# --- ОБЫЧНЫЕ ФУНКЦИИ ---
 @dp.callback_query(F.data == "menu_shops")
 async def menu_shops_list(callback: CallbackQuery):
     await callback.message.edit_text(
@@ -556,7 +735,7 @@ async def start_application(callback: CallbackQuery, state: FSMContext):
 3. Союзники
 4. Враги
 5. Задачи города
-6. Работы, зп, что делать и сколько человек требуется на эту работу
+6. Работы, зп и свободные места
 7. Магазины и его координаты, если есть
 
 Напишите 'отмена', чтобы вернуться."""
@@ -595,7 +774,7 @@ async def start_join_request(callback: CallbackQuery, state: FSMContext):
     await state.update_data(city_code=city_code)
     text = f"""🙋‍♂️ <b>Вступление в город: {city_name}</b>
 
-Напишите небольшую анкету одним сообщением:
+Напишите небольшую анкету одним сообщением (например):
 - Ваш ник в игре
 - Что вы умеете
 - Почему хотите к нам?
@@ -737,23 +916,32 @@ async def cmd_broadcast(message: Message):
             errors += 1
     await message.answer(f"🏁 Рассылка: ✅ {success}, ❌ {errors}")
 
+# --- ФОНОВАЯ ЗАДАЧА ---
 async def broadcaster():
+    last_reminder_check = time.time()
+    
     while True:
-        await asyncio.sleep(AD_INTERVAL)
-        users = db.get("all_users", [])
-        if not users:
-            continue
-        for user_id in users:
-            try:
-                await bot.send_message(user_id, AD_TEXT)
-                await asyncio.sleep(0.05)
-            except Exception:
-                pass
+        await asyncio.sleep(60) 
+        
+        current_time = time.time()
+        
+        if current_time - last_reminder_check > REMINDER_INTERVAL:
+            if db.get("pending_rewards"):
+                try:
+                    await bot.send_message(ADMIN_ID, f"🔔 <b>НАПОМИНАНИЕ!</b>\n\nВы не выплатили награды {len(db['pending_rewards'])} игрокам за идеи!", parse_mode="HTML")
+                except: pass
+            
+            users = db.get("all_users", [])
+            for user_id in users:
+                try:
+                    await bot.send_message(user_id, AD_TEXT)
+                    await asyncio.sleep(0.05)
+                except: pass
+            
+            last_reminder_check = current_time
 
 async def main():
     load_db()
-    dp.message.middleware(CheckSubscriptionMiddleware())
-    dp.callback_query.middleware(CheckSubscriptionMiddleware())
     print("Бот запущен...")
     asyncio.create_task(broadcaster())
     await dp.start_polling(bot)
