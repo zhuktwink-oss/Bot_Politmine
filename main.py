@@ -14,8 +14,8 @@ from aiogram.fsm.storage.memory import MemoryStorage
 # --- КОНФИГУРАЦИЯ ---
 TOKEN = "8226548122:AAHdyihHKdrXHZr4W8oFuxtNaY8tQriG4RE"
 ADMIN_ID = 6131249570
-AD_INTERVAL = 777600  #
-REMINDER_INTERVAL = 43200 # 12 часов
+AD_INTERVAL = 777600
+REMINDER_INTERVAL = 43200 
 AD_TEXT = "Мой Ютуб: https://youtube.com/@megakruiiiutel?si=EwNMi2obVaqA_hJs. Если вы хотите подобную рекламу своего города/магаза в боте, пишите: @megakruiii"
 DB_FILE = "database.json"
 
@@ -32,7 +32,7 @@ default_db = {
             "name": "Стальгорнскiй Ординатъ",
             "owner_id": 6131249570,
             "coords": "X: 15288, Z: -11719",
-            "allies": "ЕС, Петрозаводск, Balashow, Великий китай, Ягодники",
+            "allies": "ЕС, Петрозаводск, Balashow, Велики китай, Ягодники",
             "enemies": "СССР",
             "tasks": "1. Перестроить магаз и каз. \n2. Набрать игроков. \n3. Основаться на территориях.",
             "jobs": {
@@ -251,7 +251,6 @@ def load_db():
         try:
             with open(DB_FILE, "r", encoding="utf-8") as f:
                 db = json.load(f)
-            
             updated = False
             if "active_alliances" not in db:
                 db["active_alliances"] = []
@@ -259,7 +258,7 @@ def load_db():
             if "pending_rewards" not in db:
                 db["pending_rewards"] = []
                 updated = True
-                
+            
             for k, v in default_db["cities"].items():
                 if k not in db["cities"]:
                     db["cities"][k] = v
@@ -268,23 +267,9 @@ def load_db():
                     if "owner_id" not in db["cities"][k]:
                         db["cities"][k]["owner_id"] = v["owner_id"]
                         updated = True
-                    # ИСПРАВЛЕНИЕ СЛОТОВ:
-                    # Проходим по всем работам и если видим 9999, меняем на 50
-                    if "jobs" in db["cities"][k]:
-                        for job_key, job_data in db["cities"][k]["jobs"].items():
-                            if job_data.get("slots") == 9999:
-                                job_data["slots"] = 50
-                                updated = True
-
-            code_users = set(default_db["all_users"])
-            file_users = set(db.get("all_users", []))
-            if len(code_users) > len(file_users):
-                db["all_users"] = list(code_users.union(file_users))
-                updated = True
-
+            
             if updated:
                 save_db()
-                logging.info("БД обновлена: слоты поправлены на 50.")
         except Exception as e:
             logging.error(f"Ошибка загрузки БД: {e}")
             db = default_db
@@ -320,18 +305,24 @@ async def notify_owner_delayed(user_id, user_full_name, user_username, city_name
             del pending_notifications[user_id]
 
 def get_owned_city(user_id):
-    """Возвращает код города, которым владеет пользователь, или None"""
     for code, city in db["cities"].items():
         if city.get("owner_id") == user_id:
             return code
     return None
+
+def check_existing_alliance(city1, city2):
+    """Проверяет, есть ли уже союз между двумя городами"""
+    for al in db.get("active_alliances", []):
+        if (al["source"] == city1 and al["target"] == city2) or \
+           (al["source"] == city2 and al["target"] == city1):
+            return True
+    return False
 
 # --- ИНИЦИАЛИЗАЦИЯ ---
 bot = Bot(token=TOKEN)
 storage = MemoryStorage()
 dp = Dispatcher(storage=storage)
 
-# Состояния
 class Form(StatesGroup):
     waiting_for_application = State()
     waiting_for_join_request = State()
@@ -344,7 +335,7 @@ class AllianceForm(StatesGroup):
 # --- КЛАВИАТУРЫ ---
 def get_main_menu():
     buttons = [
-        [InlineKeyboardButton(text="💡 Предложить идею", callback_data="menu_idea")],
+        [InlineKeyboardButton(text="💡 Предложить идею для видео и получить 10$", callback_data="menu_idea")],
         [InlineKeyboardButton(text="🤝 Союзы", callback_data="menu_alliances")],
         [InlineKeyboardButton(text="🏪 Список магазинов", callback_data="menu_shops")],
         [InlineKeyboardButton(text="🏙 Список городов", callback_data="menu_cities")],
@@ -404,7 +395,7 @@ def add_user_to_db(user_id):
         db["all_users"].append(user_id)
         save_db()
 
-# --- ХЕНДЛЕРЫ ---
+# --- ХЕНДЛЕРЫ: ОСНОВНОЕ ---
 @dp.message(Command("start"))
 async def cmd_start(message: Message):
     add_user_to_db(message.from_user.id)
@@ -421,11 +412,7 @@ async def back_to_main(callback: CallbackQuery):
 # --- ХЕНДЛЕРЫ: ИДЕИ ---
 @dp.callback_query(F.data == "menu_idea")
 async def start_idea(callback: CallbackQuery, state: FSMContext):
-    text = (
-        "💡 **Предложить идею для видео**\n\n"
-        "Напишите вашу идею. Если она будет реализована, вы получите награду (монеты)!\n"
-        "Напишите 'отмена', чтобы вернуться."
-    )
+    text = "💡 **Предложить идею для видео**\n\nНапишите вашу идею, затем свой игровой ник; если идея будет принята, вы получите 10 монет. Напишите 'отмена', чтобы вернуться."
     await callback.message.edit_text(text, parse_mode="Markdown")
     await state.set_state(Form.waiting_for_idea)
 
@@ -435,30 +422,19 @@ async def process_idea(message: Message, state: FSMContext):
         await state.clear()
         await message.answer("Отменено.", reply_markup=get_main_menu())
         return
-
     idea_text = message.text
     user = message.from_user
-    safe_name = html.escape(user.full_name)
-    user_link = f"<a href='tg://user?id={user.id}'>{safe_name}</a>"
-
+    user_link = f"<a href='tg://user?id={user.id}'>{html.escape(user.full_name)}</a>"
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="👍 Понравилось (Напомнить)", callback_data=f"idea_like_{user.id}")],
         [InlineKeyboardButton(text="👎 Не понравилось", callback_data="idea_dislike")]
     ])
-
-    admin_msg = (
-        f"💡 <b>НОВАЯ ИДЕЯ ОТ ПОДПИСЧИКА!</b>\n\n"
-        f"👤 От: {user_link}\n"
-        f"🆔 ID: <code>{user.id}</code>\n\n"
-        f"📜 <b>Суть:</b>\n{html.escape(idea_text)}"
-    )
-
+    admin_msg = f"💡 <b>НОВАЯ ИДЕЯ!</b>\n\n👤 От: {user_link}\n📜 <b>Суть:</b>\n{html.escape(idea_text)}"
     try:
         await bot.send_message(ADMIN_ID, admin_msg, reply_markup=kb, parse_mode="HTML")
         await message.answer("✅ Ваша идея отправлена администратору!", reply_markup=get_main_menu())
     except Exception as e:
         await message.answer("Ошибка отправки.", reply_markup=get_main_menu())
-    
     await state.clear()
 
 @dp.callback_query(F.data == "idea_dislike")
@@ -469,44 +445,40 @@ async def idea_dislike(callback: CallbackQuery):
 @dp.callback_query(F.data.startswith("idea_like_"))
 async def idea_like(callback: CallbackQuery):
     user_id = int(callback.data.split("_")[2])
-    
-    reward_entry = {
-        "user_id": user_id,
-        "timestamp": time.time(),
-    }
+    reward_entry = {"user_id": user_id, "timestamp": time.time()}
     db["pending_rewards"].append(reward_entry)
     save_db()
-
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="💰 Выслал монеты", callback_data=f"idea_sent_{user_id}")]
     ])
-    
     await callback.message.edit_reply_markup(reply_markup=kb)
     await callback.answer("Ок! Буду напоминать.")
 
 @dp.callback_query(F.data.startswith("idea_sent_"))
 async def idea_sent(callback: CallbackQuery):
     user_id = int(callback.data.split("_")[2])
-    
     db["pending_rewards"] = [item for item in db["pending_rewards"] if item["user_id"] != user_id]
     save_db()
-
     await callback.message.delete()
     await callback.answer("Награда подтверждена.")
-    
     try:
-        await bot.send_message(user_id, "🎉 <b>Поздравляем!</b>\nВаша идея понравилась администратору, вам зачислены монеты!", parse_mode="HTML")
+        await bot.send_message(user_id, "🎉 <b>Поздравляем!</b>\nВам зачислены монеты за идею!", parse_mode="HTML")
     except: pass
 
 # --- ХЕНДЛЕРЫ: ДИПЛОМАТИЯ ---
 @dp.callback_query(F.data == "menu_alliances")
 async def show_alliances(callback: CallbackQuery):
     alliances = db.get("active_alliances", [])
+    user_id = callback.from_user.id
+    user_owned_city = get_owned_city(user_id)
+    
     if not alliances:
         text = "🤝 <b>Активные союзы</b>\n\nНа данный момент союзов не заключено."
+        kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Назад", callback_data="main_menu")]])
     else:
         text = "🤝 <b>Активные союзы</b>\n\n"
-        for al in alliances:
+        buttons = []
+        for i, al in enumerate(alliances):
             c1_name = db["cities"][al["source"]]["name"]
             c2_name = db["cities"][al["target"]]["name"]
             
@@ -522,8 +494,57 @@ async def show_alliances(callback: CallbackQuery):
                 f"Против: <i>{against_name}</i>\n\n"
             )
             
-    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Назад", callback_data="main_menu")]])
+            # Если пользователь - мэр одного из городов союза, добавляем кнопку расторжения
+            if user_owned_city and (user_owned_city == al["source"] or user_owned_city == al["target"]):
+                buttons.append([InlineKeyboardButton(text=f"❌ Расторгнуть: {c1_name} + {c2_name}", callback_data=f"break_al_{i}")])
+        
+        buttons.append([InlineKeyboardButton(text="🔙 Назад", callback_data="main_menu")])
+        kb = InlineKeyboardMarkup(inline_keyboard=buttons)
+        
     await callback.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
+
+@dp.callback_query(F.data.startswith("break_al_"))
+async def break_alliance(callback: CallbackQuery):
+    try:
+        index = int(callback.data.split("_")[2])
+        alliances = db.get("active_alliances", [])
+        
+        if index >= len(alliances):
+            await callback.answer("Ошибка: союз не найден.", show_alert=True)
+            return
+            
+        alliance = alliances[index]
+        user_id = callback.from_user.id
+        user_city = get_owned_city(user_id)
+        
+        # Проверка прав (на всякий случай)
+        if user_city != alliance["source"] and user_city != alliance["target"]:
+            await callback.answer("Вы не можете расторгнуть чужой союз!", show_alert=True)
+            return
+            
+        # Удаляем
+        del db["active_alliances"][index]
+        save_db()
+        
+        await callback.answer("Союз расторгнут!", show_alert=True)
+        
+        # Уведомляем вторую сторону
+        other_city_code = alliance["target"] if user_city == alliance["source"] else alliance["source"]
+        other_mayor = db["cities"][other_city_code].get("owner_id")
+        
+        my_city_name = db["cities"][user_city]["name"]
+        
+        if other_mayor:
+            try:
+                await bot.send_message(other_mayor, f"💔 <b>Внимание!</b>\nМэр города <b>{my_city_name}</b> расторгнул с вами союз.", parse_mode="HTML")
+            except: pass
+            
+        # Обновляем меню
+        await show_alliances(callback)
+        
+    except Exception as e:
+        logging.error(f"Break alliance error: {e}")
+        await callback.answer("Ошибка.", show_alert=True)
 
 @dp.callback_query(F.data.startswith("diplomacy_"))
 async def start_diplomacy(callback: CallbackQuery, state: FSMContext):
@@ -532,6 +553,11 @@ async def start_diplomacy(callback: CallbackQuery, state: FSMContext):
     
     if not source_city_code:
         await callback.answer("Вы не являетесь мэром!", show_alert=True)
+        return
+
+    # ПРОВЕРКА НА ДУБЛИКАТЫ
+    if check_existing_alliance(source_city_code, target_city_code):
+        await callback.answer("Вы уже состоите в союзе с этим городом!", show_alert=True)
         return
 
     await state.update_data(target=target_city_code, source=source_city_code)
@@ -614,6 +640,12 @@ async def diplomacy_accept(callback: CallbackQuery):
         against = parts[3]
         atype = parts[4]
         
+        # Финальная проверка на дубликат перед записью
+        if check_existing_alliance(source, target):
+            await callback.message.delete()
+            await callback.answer("Ошибка: союз уже существует!", show_alert=True)
+            return
+
         new_alliance = {
             "source": source,
             "target": target,
@@ -634,8 +666,8 @@ async def diplomacy_accept(callback: CallbackQuery):
             except: pass
             
     except Exception as e:
-        logging.error(f"Alliance error: {e}")
-        await callback.answer("Ошибка.", show_alert=True)
+        logging.error(f"Alliance accept error: {e}")
+        await callback.answer("Ошибка обработки.", show_alert=True)
 
 @dp.callback_query(F.data.startswith("al_dec|"))
 async def diplomacy_decline_ask(callback: CallbackQuery):
