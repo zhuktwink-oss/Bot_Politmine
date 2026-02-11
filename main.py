@@ -14,7 +14,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 # --- КОНФИГУРАЦИЯ ---
 TOKEN = "8226548122:AAHdyihHKdrXHZr4W8oFuxtNaY8tQriG4RE"
 ADMIN_ID = 6131249570
-AD_INTERVAL = 1281 000
+AD_INTERVAL = 1281000
 REMINDER_INTERVAL = 43200 
 AD_TEXT = ""
 DB_FILE = "database.json"
